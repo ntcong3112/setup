@@ -4,7 +4,6 @@ import { useHistory } from "react-router-dom";
 import Friend from "./Friend"
 
 const Child = ({name}) => {
-
     const [availability, setavailability] = React.useState('yes')
   return (
     <>
