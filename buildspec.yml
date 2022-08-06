@@ -1,0 +1,14 @@
+verison: 0.2
+
+phases:
+  pre_build:
+    - npm install
+  build:
+    commands:
+      -npm run build
+  
+  artifacts:
+    files:
+      - '**/*'
+    discard-paths: no
+    base-directory: build
