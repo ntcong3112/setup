@@ -20,6 +20,7 @@ const Login = () => {
   const [errorMessage, seterrorMessage] = React.useState("");
   const [successMessage, setsuccessMessage] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+
   const handleChange = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
   };
@@ -57,7 +58,7 @@ const Login = () => {
   const formSubmitterStep2 = (e) => {
     e.preventDefault();
 	if(input.password.length <6){
-		seterrorMessage("Hãy nhập mật khẩu");
+		seterrorMessage("Mật khẩu có ít nhất 6 ký tự");
 		return;
 	}
 	setLoading(true);
@@ -66,7 +67,10 @@ const Login = () => {
 		password: input.password,
 	}).then(function (res) {
 		setLoading(false);
-		history.push("/setup");
+		history.push({
+			pathname: '/setup',
+			state: res.data
+		});
 	}).catch(function (res) {
 		setLoading(false);
 		seterrorMessage("Mật khẩu không đúng!");
@@ -93,12 +97,10 @@ const Login = () => {
         .then((data) => {
           setLoading(false);
           setsuccessMessage("Tạo tài khoản thành công");
-          setTimeout(() => {
             history.push({
 				pathname: '/setup',
 				state: data.data
 			});
-          }, 100);
         })
         .catch(function (error) {
           setLoading(false);
@@ -134,7 +136,7 @@ const Login = () => {
           <div className="wrap-login100 p-l-55 p-r-55 p-t-65 p-b-54">
             {loading ? (
               <Box sx={{ display: "flex", justifyContent: "center" }}>
-                <CircularProgress />
+                <CircularProgress/>
               </Box>
             ) : step === 1 ? (
               <form

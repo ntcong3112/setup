@@ -10,27 +10,34 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import Link from '@mui/material/Link';
 // import { DesktopDatePicker } from '@mui/x-date-pickers/DesktopDatePicker';
 // import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
 import { useLocation } from "react-router-dom";
 import axios from "axios";
+import ChoosePage from "../components/ChoosePage";
+import { fontFamily } from "@mui/system";
 const Setup = () => {
   const history = useHistory();
   const location = useLocation();
   const [user, setUser] = React.useState({});
-  const [input, setInput] = React.useState({ name: "", message: "", link: "" });
   const [date, setDate] = React.useState(new Date("2020-06-13T00:00:00"));
   const [errorMessage, seterrorMessage] = React.useState("");
   const [successMessage, setsuccessMessage] = React.useState("");
+  const [choosePage, setChoosePage] = React.useState(true);
+  const [page, setPage] = React.useState(null);
+  const [value, setValue] = React.useState(null);
+  const [draft, setDraft] = React.useState({name: "", message: "", timeStart: new Date("6/13/2022")});
+  const [input, setInput] = React.useState({ name: draft.name, message: draft.message, timeStart: draft.timeStart });
+  const [showLink, setShowLink] = React.useState(false);
   React.useEffect(() => {
-    console.log(location.state)
+    console.log(location.state);
     if (location.state) {
-      setUser(location.state.user);
-    }
-    else{
+      setUser(location.state);
+    } else {
       history.push("/");
     }
- }, [location]);
+  }, [location]);
   const handleChange = (e) => {
     setInput({ ...input, [e.target.name]: e.target.value });
   };
@@ -39,52 +46,96 @@ const Setup = () => {
     setDate(e);
   };
 
-  React.useEffect(() => {
-    if (localStorage.getItem("auth")) history.push("/");
-  }, []);
-
+  const handleChoosePage = (e) => {
+    console.log(value);
+    e.preventDefault();
+    if(!value){
+      seterrorMessage("Hãy chọn 1 trang");
+      return
+    }
+    if(value === "new"){
+      seterrorMessage("")
+      setChoosePage(false);
+      return
+    }
+    else{
+      axios.get(`https://api.secretspage.com/api/user/page?n=${user.number}&i=${value}`).then(res => {
+        // setDraft(res.data);
+        setInput({ name: res.data.name, message: res.data.message, timeStart: res.data.timeStart });
+        setChoosePage(false);
+        seterrorMessage("");
+        setsuccessMessage("Chỉnh sửa page đếm ngày yêu với "+res.data.name);
+      }).catch(err => {
+        seterrorMessage("Lỗi không thể chọn page");
+      })
+    }
+  }
   const formSubmitter = (e) => {
     e.preventDefault();
     setsuccessMessage("");
     if (!input.name) return seterrorMessage("Please enter name");
     if (!input.message) return seterrorMessage("Please enter message");
-    if (!input.link) return seterrorMessage("Please enter url link");
     try {
       let header = {
         "Access-Control-Allow-Origin": "*",
       };
       axios
         .post(
-          `https://api.secretspage.com/api/user/create`,
-          { 
+          `https://api.secretspage.com/api/user/create-page`,
+          {
+            type: "love",
             name: input.name,
             message: input.message,
             timeStart: date,
-            link: input.link,
-           },
+            number: user.number,
+          },
           {
             headers: header,
           }
         )
         .then((res) => {
-          window.location.href =
-            "https://www.secretspage.com?link=" + input.link;
+          setsuccessMessage("Tạo thành công \n Xem thử tại đây: ");
+          setShowLink(true);
         });
     } catch (err) {
-      return seterrorMessage(err);
+      seterrorMessage(err);
     }
-    // if (!passwordValidator(input.password))
-    //   return seterrorMessage(
-    //     "Password should have minimum 8 character with the combination of uppercase, lowercase, numbers and specialcharaters"
-    //   );
-    // setsuccessMessage('Successfully Validated');
-    // if (input.email !== "admin@a.com" || input.password !== "Password@1")
-    //   return seterrorMessage("Invalid email or password");
-
-    // history.push("/");
-    // localStorage.setItem("auth", true);
   };
 
+
+  const formUpdate = (e) => {
+    e.preventDefault();
+    setsuccessMessage("");
+    if (!input.name) return seterrorMessage("Please enter name");
+    if (!input.message) return seterrorMessage("Please enter message");
+    try {
+      let header = {
+        "Access-Control-Allow-Origin": "*",
+      };
+      axios
+        .post(
+          `https://api.secretspage.com/api/user/update-page`,
+          {
+            number: user.number,
+            type: "love",
+            name: input.name,
+            message: input.message,
+            timeStart: date,
+          },
+          {
+            headers: header,
+          }
+        )
+        .then((res) => {
+          setChoosePage(true);
+          seterrorMessage("");
+          setsuccessMessage("Update thành công \n Xem thử tại đây: ");
+          setShowLink(true);
+        });
+    } catch (err) {
+      seterrorMessage("Không thể update page");
+    }
+  };
   return (
     <div>
       <div className="limiter">
@@ -93,84 +144,36 @@ const Setup = () => {
           style={{ backgroundImage: 'url("images/bg-01.jpg")' }}
         >
           <div className="wrap-login100 p-l-55 p-r-55 p-t-65 p-b-54">
-            <form
+            {choosePage ? (
+              <form
               className="login100-form validate-form"
-              onSubmit={formSubmitter}
+              onSubmit={handleChoosePage}
             >
-              <span className="login100-form-title p-b-49">Setup</span>
+              <span className="login100-form-title p-b-49">Page</span>
               {errorMessage.length > 0 && (
-                <div style={{ marginBottom: "10px", color: "red" }}>
-                  {errorMessage}
+                  <div style={{ marginBottom: "10px", color: "red" }}>
+                    {errorMessage}
+                  </div>
+                )}
+                {successMessage.length > 0 && (
+                  <div style={{ marginBottom: "10px", color: "green" }}>
+                    {successMessage}
+                    {showLink && (
+                  <Link href={"https://secretspage.com?n="+user.number+"i=0"} style={{marginBottom:"20px"}}>Secrets page</Link>
+                  
+                )}
+                  </div>
+                )}
+               
+            
+                <div style={{ marginBottom: "10px", color: "black", fontSize: "18px" }}>
+                  Chọn page muốn chỉnh sửa hoặc tạo mới:
                 </div>
-              )}
-              {successMessage.length > 0 && (
-                <div style={{ marginBottom: "10px", color: "green" }}>
-                  {successMessage}
-                </div>
-              )}
+
               <div
                 className="wrap-input100 validate-input m-b-23"
-                data-validate="nhập tên đi má"
               >
-                <span className="label-input100">Name</span>
-                <input
-                  className="input100"
-                  type="text"
-                  name="name"
-                  placeholder="Vd: em iuu"
-                  onChange={handleChange}
-                />
-                <span className="focus-input100" data-symbol="" />
-              </div>
-              <div
-                className="wrap-input100 validate-input"
-                data-validate="Có gì muốn nhắn gửi không"
-              >
-                <span className="label-input100">Message</span>
-                <textarea
-                  rows="4"
-                  className="input100 text-area-input"
-                  name="message"
-                  placeholder="Vd: anh yeu em"
-                  onChange={handleChange}
-                />
-                <span className="focus-input100" data-symbol="" />
-              </div>
-              <div className="wrap-input100 validate-input">
-                <br />
-                <LocalizationProvider
-                  dateAdapter={AdapterDateFns}
-                  className="input-date"
-                >
-                  <DateTimePicker
-                    className="input-date"
-                    label="Time start loving"
-                    value={input.timeStart}
-                    onChange={handleChangeDate}
-                    name="timeStart"
-                    renderInput={(params) => <TextField {...params} />}
-                  />{" "}
-                </LocalizationProvider>
-              </div>
-              <br />
-              <div
-                className="wrap-input100 validate-input m-b-23"
-                data-validate="Nhập url"
-              >
-                <span style={{ marginTop: "20px" }} className="label-input100 ">
-                  URL Link(secretspage.com/link)
-                </span>
-                <input
-                  className="input100"
-                  type="text"
-                  name="link"
-                  placeholder="Vd: emiu  ---> secretspage.com/emiu"
-                  onChange={handleChange}
-                />
-                <span className="focus-input100" data-symbol="" />
-              </div>
-              <div className="text-right p-t-8 p-b-31">
-                <a href="#">...</a>
+                <ChoosePage user={user} value={value} setValue={setValue}/>
               </div>
               <div className="container-login100-form-btn">
                 <div className="wrap-login100-form-btn">
@@ -179,30 +182,142 @@ const Setup = () => {
                 </div>
               </div>
               <div className="txt1 text-center p-t-54 p-b-20">
-                <span>Donate & Support</span>
+                <span>Support</span>
               </div>
-              
-              <div className="flex-col-c">
-                {/* <span className="txt1 p-b-17">Or Sign Up Using</span>
+              <div className="flex-c-m">
+              <a href="https://www.facebook.com/ntcongg/" className="login100-social-item bg1">
+                <i className="fa fa-facebook" />
+              </a>
+              <a href="https://www.instagram.com/_augustine.ng/" className="login100-social-item bg2">
+                <i className="fa fa-instagram" />
+              </a>
+              <a href="#" className="login100-social-item bg3">
+                <i className="fa fa-google" />
+              </a>
+            </div>
+              {/* <div className="flex-col-c p-t-155">
+              <span className="txt1 p-b-17">Or Sign Up Using</span>
+              <a href="#" className="txt2">
+                Sign Up
+              </a>
+            </div> */}
+            </form>
+            ) : (
+              <form
+                className="login100-form validate-form"
+                onSubmit={page ==="new" ? formSubmitter : formUpdate}
+              >
+                <span className="login100-form-title p-b-49">Setup</span>
+                {errorMessage.length > 0 && (
+                  <div style={{ marginBottom: "10px", color: "red" }}>
+                    {errorMessage}
+                  </div>
+                )}
+                {successMessage.length > 0 && (
+                  <div style={{ marginBottom: "10px", color: "green" }}>
+                    {successMessage}
+                  </div>
+                )}
+                <div
+                  className="wrap-input100 validate-input m-b-23"
+                  data-validate="nhập tên đi má"
+                >
+                  <span className="label-input100">Name</span>
+                  <input
+                    className="input100"
+                    type="text"
+                    name="name"
+                    value={input.name}
+                    placeholder="Vd: em iuu"
+                    onChange={handleChange}
+                  />
+                  <span className="focus-input100" data-symbol="" />
+                </div>
+                <div
+                  className="wrap-input100 validate-input"
+                  data-validate="Có gì muốn nhắn gửi không"
+                >
+                  <span className="label-input100">Message</span>
+                  <textarea
+                    rows="4"
+                    className="input100 text-area-input"
+                    value={input.message}
+                    name="message"
+                    placeholder="Vd: anh yeu em"
+                    onChange={handleChange}
+                  />
+                  <span className="focus-input100" data-symbol="" />
+                </div>
+                <div className="wrap-input100 validate-input">
+                  <br />
+                  <br />
+                  <LocalizationProvider
+                    dateAdapter={AdapterDateFns}
+                    className="input-date"
+                  >
+                    <DateTimePicker
+                      className="input-date"
+                      label="Time start loving"
+                      value={input.timeStart}
+                      onChange={handleChangeDate}
+                      name="timeStart"
+                      renderInput={(params) => <TextField {...params} />}
+                    />{" "}
+                  </LocalizationProvider>
+                </div>
+                <br />
+                {/* <div
+                  className="wrap-input100 validate-input m-b-23"
+                  data-validate="Nhập url"
+                >
+                  <span
+                    style={{ marginTop: "20px" }}
+                    className="label-input100 "
+                  >
+                    URL Link(secretspage.com/link)
+                  </span>
+                  <input
+                    className="input100"
+                    type="text"
+                    name="link"
+                    placeholder="Vd: emiu  ---> secretspage.com/emiu"
+                    onChange={handleChange}
+                  />
+                  <span className="focus-input100" data-symbol="" />
+                </div>
+                <div className="text-right p-t-8 p-b-31">
+                  <a href="#">...</a>
+                </div> */}
+                <div className="container-login100-form-btn">
+                  <div className="wrap-login100-form-btn">
+                    <div className="login100-form-bgbtn" />
+                    <button className="login100-form-btn">Xác nhận</button>
+                  </div>
+                </div>
+                <div className="txt1 text-center p-t-54 p-b-20">
+                  <span>Donate & Support</span>
+                </div>
+
+                <div className="flex-col-c">
+                  {/* <span className="txt1 p-b-17">Or Sign Up Using</span>
                 <a href="#" className="txt2">
                   Sign Up
                 </a> */}
-                <div >
-                  <svg
-                    version="1.0"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="500px"
- 
-                    viewBox="0 0 666.000000 828.000000"
-                    preserveAspectRatio="xMidYMid meet"
-                  >
-                    <g
-                      transform="translate(0.000000,828.000000) scale(0.100000,-0.100000)"
-                      fill="#000000"
-                      stroke="none"
+                  <div>
+                    <svg
+                      version="1.0"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="500px"
+                      viewBox="0 0 666.000000 828.000000"
+                      preserveAspectRatio="xMidYMid meet"
                     >
-                      <path
-                        d="M3215 7925 c-74 -19 -127 -50 -188 -110 -92 -92 -135 -204 -123 -327
+                      <g
+                        transform="translate(0.000000,828.000000) scale(0.100000,-0.100000)"
+                        fill="#000000"
+                        stroke="none"
+                      >
+                        <path
+                          d="M3215 7925 c-74 -19 -127 -50 -188 -110 -92 -92 -135 -204 -123 -327
 10 -112 39 -173 120 -254 110 -109 224 -149 362 -126 88 15 144 44 218 113
 270 252 107 692 -264 715 -38 2 -89 -3 -125 -11z m317 -207 c10 -2 21 -8 25
 -13 5 -4 2 -5 -6 0 -11 6 -13 4 -8 -8 3 -9 1 -19 -5 -23 -7 -4 -8 -3 -4 4 11
@@ -215,372 +330,372 @@ const Setup = () => {
 -96 -206 -345 -213 -338 -5 5 -10 27 -11 49 -1 22 -7 47 -15 55 -7 9 -8 16 -2
 16 5 0 12 9 15 21 4 16 3 18 -9 8 -8 -6 -14 -7 -14 -2 0 10 22 30 95 87 28 21
 57 47 65 57 17 21 81 68 93 69 4 0 3 -10 -4 -22z"
-                      />
-                      <path
-                        d="M2456 6838 c-9 -12 -16 -41 -16 -63 0 -53 23 -85 60 -85 37 0 60 32
+                        />
+                        <path
+                          d="M2456 6838 c-9 -12 -16 -41 -16 -63 0 -53 23 -85 60 -85 37 0 60 32
 60 85 0 53 -23 85 -60 85 -18 0 -34 -8 -44 -22z m62 -10 c18 -18 15 -93 -4
 -108 -12 -11 -18 -11 -31 2 -18 19 -20 83 -3 103 15 18 22 19 38 3z"
-                      />
-                      <path
-                        d="M2627 6803 c-19 -31 -33 -63 -30 -70 3 -8 21 -13 44 -13 28 0 39 -4
+                        />
+                        <path
+                          d="M2627 6803 c-19 -31 -33 -63 -30 -70 3 -8 21 -13 44 -13 28 0 39 -4
 39 -15 0 -8 5 -15 10 -15 6 0 10 7 10 15 0 8 7 15 15 15 8 0 15 5 15 10 0 6
 -7 13 -15 16 -11 5 -15 21 -15 60 0 47 -3 54 -19 54 -13 0 -31 -20 -54 -57z
 m50 -50 c-3 -2 -16 -3 -30 -1 l-24 3 26 40 26 40 3 -39 c2 -21 1 -40 -1 -43z"
-                      />
-                      <path
-                        d="M2786 6844 c-24 -23 -30 -61 -17 -104 12 -42 36 -56 76 -46 45 11 57
+                        />
+                        <path
+                          d="M2786 6844 c-24 -23 -30 -61 -17 -104 12 -42 36 -56 76 -46 45 11 57
 113 18 151 -19 20 -57 19 -77 -1z m64 -23 c21 -40 5 -111 -25 -111 -8 0 -19 9
 -25 19 -21 40 -5 111 25 111 8 0 19 -9 25 -19z"
-                      />
-                      <path
-                        d="M2938 6846 c-26 -19 -24 -40 2 -26 19 10 20 8 20 -60 0 -56 3 -70 15
+                        />
+                        <path
+                          d="M2938 6846 c-26 -19 -24 -40 2 -26 19 10 20 8 20 -60 0 -56 3 -70 15
 -70 12 0 15 16 15 85 0 74 -2 85 -17 85 -10 0 -26 -7 -35 -14z"
-                      />
-                      <path
-                        d="M3122 6848 c-15 -15 -16 -40 -1 -55 9 -9 8 -16 -5 -28 -21 -21 -20
+                        />
+                        <path
+                          d="M3122 6848 c-15 -15 -16 -40 -1 -55 9 -9 8 -16 -5 -28 -21 -21 -20
 -38 2 -58 23 -21 76 -22 96 -1 21 20 20 51 0 62 -14 8 -14 12 -3 31 10 16 11
 26 3 39 -13 21 -74 28 -92 10z m71 -22 c7 -19 -18 -40 -38 -32 -15 6 -20 28
 -8 39 12 12 41 7 46 -7z m-5 -65 c23 -14 10 -46 -19 -49 -33 -4 -48 26 -23 45
 21 15 25 16 42 4z"
-                      />
-                      <path
-                        d="M3277 6853 c-4 -3 -7 -26 -7 -51 0 -38 2 -43 18 -37 37 16 49 16 61
+                        />
+                        <path
+                          d="M3277 6853 c-4 -3 -7 -26 -7 -51 0 -38 2 -43 18 -37 37 16 49 16 61
 1 29 -34 -16 -71 -49 -41 -23 21 -39 12 -24 -13 13 -21 56 -27 84 -12 14 7 20
 21 20 44 0 42 -21 60 -60 52 -30 -6 -35 0 -24 28 4 10 18 16 40 16 19 0 34 5
 34 10 0 11 -83 14 -93 3z"
-                      />
-                      <path
-                        d="M3426 6813 c-3 -25 -4 -49 -1 -51 3 -3 16 0 29 8 33 17 56 7 56 -25
+                        />
+                        <path
+                          d="M3426 6813 c-3 -25 -4 -49 -1 -51 3 -3 16 0 29 8 33 17 56 7 56 -25
 0 -33 -23 -42 -55 -21 -28 18 -35 20 -35 7 0 -38 75 -54 103 -23 36 40 3 99
 -48 90 -22 -5 -26 -2 -23 16 2 16 11 22 41 24 54 5 45 22 -12 22 l-48 0 -7
 -47z"
-                      />
-                      <path
-                        d="M3596 6844 c-20 -20 -20 -29 0 -49 15 -15 15 -17 -1 -29 -26 -18 -16
+                        />
+                        <path
+                          d="M3596 6844 c-20 -20 -20 -29 0 -49 15 -15 15 -17 -1 -29 -26 -18 -16
 -59 18 -70 57 -20 111 28 76 70 -9 11 -9 18 -1 26 27 27 -2 68 -48 68 -16 0
 -36 -7 -44 -16z m69 -29 c0 -22 -31 -33 -47 -17 -17 17 -1 44 24 40 15 -2 23
 -10 23 -23z m0 -61 c20 -20 2 -46 -29 -42 -24 4 -34 37 -14 49 18 12 24 11 43
 -7z"
-                      />
-                      <path
-                        d="M3817 6842 c-21 -23 -21 -32 -3 -32 8 0 17 7 20 16 8 20 50 15 54 -7
+                        />
+                        <path
+                          d="M3817 6842 c-21 -23 -21 -32 -3 -32 8 0 17 7 20 16 8 20 50 15 54 -7
 1 -9 -18 -39 -43 -66 -25 -28 -45 -54 -45 -57 0 -3 27 -6 60 -6 44 0 60 4 60
 14 0 9 -11 13 -35 11 -19 -1 -35 1 -35 5 0 3 13 19 29 34 36 35 43 59 24 85
 -18 26 -64 28 -86 3z"
-                      />
-                      <path
-                        d="M3984 6852 c-43 -29 -43 -125 0 -154 67 -45 130 86 70 146 -16 17
+                        />
+                        <path
+                          d="M3984 6852 c-43 -29 -43 -125 0 -154 67 -45 130 86 70 146 -16 17
 -51 21 -70 8z m56 -31 c21 -40 5 -111 -25 -111 -8 0 -19 9 -25 19 -21 40 -5
 111 25 111 8 0 19 -9 25 -19z"
-                      />
-                      <path
-                        d="M4132 6844 c-12 -8 -22 -22 -22 -31 0 -14 3 -14 20 2 20 18 20 17 21
+                        />
+                        <path
+                          d="M4132 6844 c-12 -8 -22 -22 -22 -31 0 -14 3 -14 20 2 20 18 20 17 21
 -11 1 -16 2 -47 3 -68 0 -22 7 -41 14 -43 9 -4 12 17 12 81 0 92 -5 100 -48
 70z"
-                      />
-                      <path
-                        d="M1950 6315 c0 -68 3 -85 15 -85 10 0 15 15 17 58 l3 57 40 -57 c56
+                        />
+                        <path
+                          d="M1950 6315 c0 -68 3 -85 15 -85 10 0 15 15 17 58 l3 57 40 -57 c56
 -80 65 -76 65 27 0 68 -3 85 -15 85 -10 0 -15 -15 -17 -56 l-3 -57 -39 57
 c-55 80 -66 75 -66 -29z"
-                      />
-                      <path
-                        d="M2151 6374 c-45 -57 -12 -144 55 -144 41 0 74 29 74 65 0 22 -4 25
+                        />
+                        <path
+                          d="M2151 6374 c-45 -57 -12 -144 55 -144 41 0 74 29 74 65 0 22 -4 25
 -35 25 -19 0 -35 -4 -35 -10 0 -5 9 -10 20 -10 22 0 26 -20 8 -38 -30 -30 -78
 3 -78 55 0 17 8 38 21 48 19 19 21 19 55 0 41 -22 54 -15 25 14 -31 31 -84 28
 -110 -5z"
-                      />
-                      <path
-                        d="M2320 6332 c0 -79 15 -102 68 -102 49 0 62 21 62 101 0 39 -4 69 -10
+                        />
+                        <path
+                          d="M2320 6332 c0 -79 15 -102 68 -102 49 0 62 21 62 101 0 39 -4 69 -10
 69 -5 0 -10 -21 -10 -47 0 -66 -9 -91 -32 -99 -33 -10 -50 17 -52 82 0 36 -6
 59 -13 61 -10 4 -13 -14 -13 -65z"
-                      />
-                      <path
-                        d="M2490 6393 c0 -5 12 -26 25 -48 15 -24 25 -55 25 -77 0 -27 4 -38 15
+                        />
+                        <path
+                          d="M2490 6393 c0 -5 12 -26 25 -48 15 -24 25 -55 25 -77 0 -27 4 -38 15
 -38 10 0 15 10 15 31 0 17 14 56 31 85 23 40 27 54 16 54 -8 0 -25 -17 -37
 -37 l-22 -38 -22 37 c-18 33 -47 52 -46 31z"
-                      />
-                      <path
-                        d="M2660 6315 l0 -85 55 0 c42 0 55 3 55 15 0 11 -11 15 -41 15 -36 0
+                        />
+                        <path
+                          d="M2660 6315 l0 -85 55 0 c42 0 55 3 55 15 0 11 -11 15 -41 15 -36 0
 -40 2 -37 23 2 17 11 23 36 25 43 4 41 22 -3 22 -28 0 -35 4 -35 20 0 14 7 20
 25 21 44 2 48 4 53 17 3 9 -12 12 -52 12 l-56 0 0 -85z"
-                      />
-                      <path
-                        d="M2810 6315 c0 -68 3 -85 15 -85 10 0 15 15 17 58 l3 57 40 -57 c56
+                        />
+                        <path
+                          d="M2810 6315 c0 -68 3 -85 15 -85 10 0 15 15 17 58 l3 57 40 -57 c56
 -80 65 -76 65 27 0 68 -3 85 -15 85 -10 0 -15 -15 -17 -56 l-3 -57 -39 57
 c-55 80 -66 75 -66 -29z"
-                      />
-                      <path
-                        d="M3052 6388 c3 -7 13 -13 24 -13 17 0 19 -9 22 -72 2 -56 6 -73 17
+                        />
+                        <path
+                          d="M3052 6388 c3 -7 13 -13 24 -13 17 0 19 -9 22 -72 2 -56 6 -73 17
 -73 12 0 15 16 15 75 0 75 0 75 25 71 17 -3 25 0 25 10 0 11 -15 14 -66 14
 -48 0 -65 -3 -62 -12z"
-                      />
-                      <path
-                        d="M3210 6315 c0 -67 3 -85 14 -85 10 0 16 13 18 38 3 35 5 37 38 38 32
+                        />
+                        <path
+                          d="M3210 6315 c0 -67 3 -85 14 -85 10 0 16 13 18 38 3 35 5 37 38 38 32
 0 35 -2 40 -35 3 -19 11 -36 18 -39 9 -3 12 18 12 83 0 65 -3 86 -12 83 -7 -3
 -14 -19 -16 -36 -3 -30 -6 -32 -43 -32 -38 0 -39 1 -39 35 0 24 -5 35 -15 35
 -12 0 -15 -16 -15 -85z"
-                      />
-                      <path
-                        d="M3417 6323 c-15 -43 -27 -81 -27 -85 0 -18 21 -6 29 15 13 34 64 35
+                        />
+                        <path
+                          d="M3417 6323 c-15 -43 -27 -81 -27 -85 0 -18 21 -6 29 15 13 34 64 35
 80 1 10 -22 31 -33 31 -16 0 4 -12 42 -27 85 -19 54 -31 77 -43 77 -12 0 -24
 -23 -43 -77z m57 15 c9 -35 8 -38 -14 -38 -11 0 -20 3 -20 8 0 19 13 52 20 52
 4 0 10 -10 14 -22z"
-                      />
-                      <path
-                        d="M3570 6315 c0 -50 4 -85 10 -85 6 0 10 25 10 55 0 30 3 55 8 55 4 0
+                        />
+                        <path
+                          d="M3570 6315 c0 -50 4 -85 10 -85 6 0 10 25 10 55 0 30 3 55 8 55 4 0
 24 -25 45 -55 21 -30 42 -55 46 -55 12 0 18 29 15 80 -1 25 -2 55 -3 68 -2 47
 -20 19 -23 -35 l-3 -58 -43 58 c-23 31 -47 57 -52 57 -6 0 -10 -37 -10 -85z"
-                      />
-                      <path
-                        d="M3750 6315 c0 -67 3 -85 14 -85 10 0 16 13 18 36 3 31 7 37 29 40 35
+                        />
+                        <path
+                          d="M3750 6315 c0 -67 3 -85 14 -85 10 0 16 13 18 36 3 31 7 37 29 40 35
 3 47 -6 51 -40 1 -16 9 -31 16 -34 9 -3 12 18 12 83 0 65 -3 86 -12 83 -7 -3
 -14 -19 -16 -36 -3 -30 -6 -32 -43 -32 -38 0 -39 1 -39 35 0 24 -5 35 -15 35
 -12 0 -15 -16 -15 -85z"
-                      />
-                      <path
-                        d="M4011 6374 c-45 -57 -12 -144 54 -144 32 0 65 21 65 41 0 5 -7 9 -15
+                        />
+                        <path
+                          d="M4011 6374 c-45 -57 -12 -144 54 -144 32 0 65 21 65 41 0 5 -7 9 -15
 9 -8 0 -15 -4 -15 -9 0 -20 -41 -23 -61 -5 -41 37 -9 125 39 110 11 -4 23 -13
 26 -21 7 -19 26 -19 26 -1 0 49 -85 63 -119 20z"
-                      />
-                      <path
-                        d="M4190 6380 c-29 -29 -28 -102 2 -130 52 -48 128 -8 128 70 0 69 -83
+                        />
+                        <path
+                          d="M4190 6380 c-29 -29 -28 -102 2 -130 52 -48 128 -8 128 70 0 69 -83
 107 -130 60z m84 -16 c22 -22 20 -77 -3 -98 -25 -23 -59 -13 -72 21 -23 61 33
 120 75 77z"
-                      />
-                      <path
-                        d="M4360 6315 c0 -68 3 -85 15 -85 10 0 15 15 17 58 l3 57 40 -57 c56
+                        />
+                        <path
+                          d="M4360 6315 c0 -68 3 -85 15 -85 10 0 15 15 17 58 l3 57 40 -57 c56
 -80 65 -76 65 27 0 68 -3 85 -15 85 -10 0 -15 -15 -17 -56 l-3 -57 -39 57
 c-55 80 -66 75 -66 -29z"
-                      />
-                      <path
-                        d="M4560 6380 c-14 -14 -20 -33 -20 -65 0 -56 25 -85 73 -85 38 0 62 21
+                        />
+                        <path
+                          d="M4560 6380 c-14 -14 -20 -33 -20 -65 0 -56 25 -85 73 -85 38 0 62 21
 72 63 7 26 5 27 -29 27 -20 0 -36 -4 -36 -10 0 -5 9 -10 20 -10 24 0 26 -13 4
 -34 -42 -42 -98 16 -75 77 13 33 47 44 70 23 19 -17 41 -21 41 -8 0 5 -8 16
 -18 25 -25 23 -78 21 -102 -3z"
-                      />
-                      <path
-                        d="M1980 5945 c-16 -19 -5 -32 13 -17 10 9 16 9 25 0 6 -6 15 -9 18 -5
+                        />
+                        <path
+                          d="M1980 5945 c-16 -19 -5 -32 13 -17 10 9 16 9 25 0 6 -6 15 -9 18 -5
 9 9 -15 37 -31 37 -7 0 -18 -7 -25 -15z"
-                      />
-                      <path
-                        d="M2470 5952 c0 -12 23 -32 37 -32 11 0 11 4 1 20 -13 20 -38 28 -38
+                        />
+                        <path
+                          d="M2470 5952 c0 -12 23 -32 37 -32 11 0 11 4 1 20 -13 20 -38 28 -38
 12z"
-                      />
-                      <path
-                        d="M3970 5945 c-16 -20 -5 -32 14 -16 10 8 16 9 21 1 3 -5 13 -10 22
+                        />
+                        <path
+                          d="M3970 5945 c-16 -20 -5 -32 14 -16 10 8 16 9 21 1 3 -5 13 -10 22
 -10 14 0 14 3 -2 20 -22 24 -38 25 -55 5z"
-                      />
-                      <path
-                        d="M2309 5943 c-1 -13 -1 -147 0 -160 1 -7 6 -13 11 -13 6 0 10 17 10
+                        />
+                        <path
+                          d="M2309 5943 c-1 -13 -1 -147 0 -160 1 -7 6 -13 11 -13 6 0 10 17 10
 38 0 21 6 47 14 57 22 30 46 3 46 -51 0 -32 4 -44 15 -44 21 0 21 93 -1 114
 -18 19 -45 21 -62 4 -9 -9 -12 -4 -12 25 0 20 -4 37 -10 37 -5 0 -10 -3 -11
 -7z"
-                      />
-                      <path
-                        d="M3880 5935 c0 -9 5 -15 11 -13 6 2 11 8 11 13 0 5 -5 11 -11 13 -6 2
+                        />
+                        <path
+                          d="M3880 5935 c0 -9 5 -15 11 -13 6 2 11 8 11 13 0 5 -5 11 -11 13 -6 2
 -11 -4 -11 -13z"
-                      />
-                      <path
-                        d="M4460 5861 c0 -74 3 -91 15 -91 11 0 15 12 15 49 0 32 5 51 13 54 24
+                        />
+                        <path
+                          d="M4460 5861 c0 -74 3 -91 15 -91 11 0 15 12 15 49 0 32 5 51 13 54 24
 9 36 -7 39 -52 2 -25 9 -46 16 -49 10 -3 12 10 10 53 -3 66 -23 89 -57 68 -18
 -11 -20 -9 -23 19 -2 17 -9 33 -15 36 -10 3 -13 -19 -13 -87z"
-                      />
-                      <path
-                        d="M1630 5855 c0 -50 4 -85 10 -85 6 0 10 25 10 55 0 30 3 55 8 55 4 -1
+                        />
+                        <path
+                          d="M1630 5855 c0 -50 4 -85 10 -85 6 0 10 25 10 55 0 30 3 55 8 55 4 -1
 24 -25 45 -55 55 -80 60 -75 59 50 -1 66 -1 65 -12 65 -5 0 -10 -26 -12 -57
 l-3 -58 -43 58 c-23 31 -47 57 -52 57 -6 0 -10 -37 -10 -85z"
-                      />
-                      <path
-                        d="M2950 5930 c0 -10 3 -11 33 -14 8 -1 13 -25 15 -73 2 -56 6 -73 17
+                        />
+                        <path
+                          d="M2950 5930 c0 -10 3 -11 33 -14 8 -1 13 -25 15 -73 2 -56 6 -73 17
 -73 12 0 15 16 15 75 0 70 1 75 21 72 12 -1 24 4 26 11 3 9 -13 12 -61 12 -37
 0 -66 -4 -66 -10z"
-                      />
-                      <path
-                        d="M3110 5855 c0 -69 3 -85 15 -85 12 0 15 13 16 58 l0 57 24 -53 c14
+                        />
+                        <path
+                          d="M3110 5855 c0 -69 3 -85 15 -85 12 0 15 13 16 58 l0 57 24 -53 c14
 -30 30 -52 36 -50 7 2 22 29 33 59 l21 54 3 -62 c4 -94 22 -76 22 23 0 73 -2
 85 -16 82 -9 -2 -25 -25 -36 -53 -11 -27 -23 -54 -27 -58 -5 -5 -18 19 -31 52
 -16 45 -27 61 -41 61 -17 0 -19 -9 -19 -85z"
-                      />
-                      <path
-                        d="M3350 5920 c-14 -14 -20 -33 -20 -65 0 -53 25 -85 68 -85 29 0 72 24
+                        />
+                        <path
+                          d="M3350 5920 c-14 -14 -20 -33 -20 -65 0 -53 25 -85 68 -85 29 0 72 24
 72 41 0 14 -22 11 -42 -8 -42 -37 -93 28 -66 85 17 35 41 39 75 12 20 -15 29
 -18 32 -9 6 19 -37 49 -70 49 -16 0 -38 -9 -49 -20z"
-                      />
-                      <path
-                        d="M3510 5854 c0 -64 3 -85 13 -81 6 2 12 14 12 28 0 20 6 25 39 30 91
+                        />
+                        <path
+                          d="M3510 5854 c0 -64 3 -85 13 -81 6 2 12 14 12 28 0 20 6 25 39 30 91
 15 69 109 -26 109 l-38 0 0 -86z m74 53 c26 -19 17 -51 -15 -55 -29 -3 -44 18
 -34 49 7 22 24 24 49 6z"
-                      />
-                      <path
-                        d="M3720 5925 c0 -9 9 -15 25 -15 24 0 25 -2 25 -70 0 -56 3 -70 15 -70
+                        />
+                        <path
+                          d="M3720 5925 c0 -9 9 -15 25 -15 24 0 25 -2 25 -70 0 -56 3 -70 15 -70
 12 0 15 15 15 74 0 69 1 73 22 72 11 0 23 5 25 12 4 9 -13 12 -61 12 -52 0
 -66 -3 -66 -15z"
-                      />
-                      <path
-                        d="M4300 5855 c0 -69 3 -85 15 -85 10 0 15 10 15 30 0 27 3 30 33 30 42
+                        />
+                        <path
+                          d="M4300 5855 c0 -69 3 -85 15 -85 10 0 15 10 15 30 0 27 3 30 33 30 42
 0 57 15 57 57 0 39 -21 53 -79 53 l-41 0 0 -85z m84 49 c22 -21 4 -54 -29 -54
 -22 0 -25 4 -25 35 0 28 4 35 19 35 11 0 27 -7 35 -16z"
-                      />
-                      <path
-                        d="M1816 5884 c-42 -42 -2 -124 50 -104 20 8 24 6 24 -9 0 -24 -26 -34
+                        />
+                        <path
+                          d="M1816 5884 c-42 -42 -2 -124 50 -104 20 8 24 6 24 -9 0 -24 -26 -34
 -52 -20 -23 12 -37 4 -20 -13 18 -18 73 -14 88 7 20 27 19 155 -1 155 -8 0
 -15 -5 -15 -12 0 -9 -3 -9 -12 0 -17 17 -44 15 -62 -4z m64 -18 c6 -8 10 -25
 8 -38 -2 -17 -10 -23 -28 -23 -20 0 -26 6 -28 29 -5 40 25 59 48 32z"
-                      />
-                      <path
-                        d="M1973 5893 c-25 -9 -13 -23 18 -21 41 4 50 -19 12 -27 -50 -11 -53
+                        />
+                        <path
+                          d="M1973 5893 c-25 -9 -13 -23 18 -21 41 4 50 -19 12 -27 -50 -11 -53
 -14 -53 -39 0 -19 7 -27 25 -32 14 -3 31 -1 39 5 11 9 15 9 18 0 2 -7 9 -9 15
 -6 16 10 8 108 -9 118 -14 9 -46 10 -65 2z m55 -75 c-6 -16 -36 -34 -44 -26
 -3 4 -4 14 -1 23 7 17 51 21 45 3z"
-                      />
-                      <path
-                        d="M2097 5893 c-4 -3 -7 -33 -7 -65 0 -45 3 -58 15 -58 11 0 15 12 15
+                        />
+                        <path
+                          d="M2097 5893 c-4 -3 -7 -33 -7 -65 0 -45 3 -58 15 -58 11 0 15 12 15
 44 0 51 20 76 45 56 9 -8 15 -30 15 -56 0 -24 5 -44 10 -44 6 0 10 27 10 60 0
 55 -2 60 -25 66 -15 4 -32 1 -40 -6 -10 -9 -15 -9 -15 -1 0 12 -13 15 -23 4z"
-                      />
-                      <path
-                        d="M2473 5893 c-26 -10 -13 -25 16 -18 21 4 30 2 34 -9 5 -11 -2 -18
+                        />
+                        <path
+                          d="M2473 5893 c-26 -10 -13 -25 16 -18 21 4 30 2 34 -9 5 -11 -2 -18
 -21 -22 -48 -10 -52 -13 -52 -38 0 -19 7 -27 25 -32 14 -3 31 -1 39 5 11 9 15
 9 19 -1 9 -26 20 4 20 53 -1 32 -6 55 -15 60 -14 9 -45 10 -65 2z m55 -75 c-6
 -16 -36 -34 -44 -26 -3 4 -4 14 -1 23 7 17 51 21 45 3z"
-                      />
-                      <path
-                        d="M2597 5893 c-4 -3 -7 -33 -7 -65 0 -45 3 -58 15 -58 11 0 15 12 15
+                        />
+                        <path
+                          d="M2597 5893 c-4 -3 -7 -33 -7 -65 0 -45 3 -58 15 -58 11 0 15 12 15
 44 0 54 24 81 46 51 8 -10 14 -36 14 -57 0 -21 5 -38 10 -38 6 0 10 27 10 60
 0 55 -2 60 -25 66 -15 4 -32 1 -40 -6 -10 -9 -15 -9 -15 -1 0 12 -13 15 -23 4z"
-                      />
-                      <path
-                        d="M2744 5875 c-32 -49 10 -119 58 -94 23 12 28 11 28 -6 0 -23 -36 -38
+                        />
+                        <path
+                          d="M2744 5875 c-32 -49 10 -119 58 -94 23 12 28 11 28 -6 0 -23 -36 -38
 -59 -23 -23 14 -40 3 -23 -14 15 -15 67 -14 86 2 12 9 16 32 16 86 0 43 -4 74
 -10 74 -5 0 -10 -5 -10 -10 0 -7 -6 -7 -19 0 -31 16 -49 12 -67 -15z m62 -3
 c32 -22 15 -78 -22 -70 -22 4 -31 43 -14 64 14 16 20 17 36 6z"
-                      />
-                      <path
-                        d="M3880 5836 c0 -53 3 -66 15 -66 13 0 15 11 13 62 -2 38 -8 63 -15 66
+                        />
+                        <path
+                          d="M3880 5836 c0 -53 3 -66 15 -66 13 0 15 11 13 62 -2 38 -8 63 -15 66
 -10 3 -13 -14 -13 -62z"
-                      />
-                      <path
-                        d="M3957 5882 c-52 -58 17 -144 79 -97 18 13 16 14 -21 12 -30 -2 -40 2
+                        />
+                        <path
+                          d="M3957 5882 c-52 -58 17 -144 79 -97 18 13 16 14 -21 12 -30 -2 -40 2
 -43 16 -3 14 4 17 37 17 34 0 41 3 41 19 0 46 -62 67 -93 33z m61 -19 c2 -8
 -6 -13 -22 -13 -25 0 -33 10 -19 24 10 10 36 3 41 -11z"
-                      />
-                      <path
-                        d="M4090 5835 c0 -51 3 -65 15 -65 11 0 15 12 15 49 0 52 8 65 34 55 12
+                        />
+                        <path
+                          d="M4090 5835 c0 -51 3 -65 15 -65 11 0 15 12 15 49 0 52 8 65 34 55 12
 -4 16 -20 16 -55 0 -37 4 -49 15 -49 11 0 15 13 15 53 0 57 -12 77 -45 77 -12
 0 -26 -5 -33 -12 -9 -9 -12 -9 -12 0 0 7 -4 12 -10 12 -6 0 -10 -28 -10 -65z"
-                      />
-                      <path
-                        d="M4617 5882 c-37 -40 -10 -112 41 -112 29 0 62 34 62 63 0 58 -67 89
+                        />
+                        <path
+                          d="M4617 5882 c-37 -40 -10 -112 41 -112 29 0 62 34 62 63 0 58 -67 89
 -103 49z m61 -14 c28 -28 2 -88 -33 -74 -18 7 -21 72 -2 79 19 8 22 8 35 -5z"
-                      />
-                      <path
-                        d="M4754 5886 c-9 -25 1 -109 14 -114 8 -2 12 10 12 41 0 27 6 49 15 57
+                        />
+                        <path
+                          d="M4754 5886 c-9 -25 1 -109 14 -114 8 -2 12 10 12 41 0 27 6 49 15 57
 25 20 45 -5 45 -56 0 -24 5 -44 10 -44 6 0 10 27 10 60 0 55 -2 60 -25 66 -15
 4 -32 1 -40 -6 -10 -9 -15 -9 -15 -1 0 16 -20 14 -26 -3z"
-                      />
-                      <path
-                        d="M4913 5888 c-43 -56 -5 -135 50 -106 22 12 30 6 21 -15 -8 -22 -32
+                        />
+                        <path
+                          d="M4913 5888 c-43 -56 -5 -135 50 -106 22 12 30 6 21 -15 -8 -22 -32
 -29 -54 -15 -22 14 -39 3 -22 -14 15 -15 67 -14 86 2 12 9 16 32 16 86 0 43
 -4 74 -10 74 -5 0 -10 -5 -10 -10 0 -7 -6 -7 -19 0 -26 13 -46 13 -58 -2z m53
 -16 c16 -10 25 -45 15 -60 -4 -8 -19 -12 -32 -10 -27 3 -38 40 -19 64 14 16
 20 17 36 6z"
-                      />
-                      <path
-                        d="M1540 5465 c-9 -11 -8 -20 10 -45 24 -33 33 -39 23 -13 -5 12 -3 14
+                        />
+                        <path
+                          d="M1540 5465 c-9 -11 -8 -20 10 -45 24 -33 33 -39 23 -13 -5 12 -3 14
 8 8 8 -4 11 -5 7 0 -4 4 -2 15 4 23 10 11 8 17 -7 28 -24 18 -30 18 -45 -1z"
-                      />
-                      <path
-                        d="M3753 5454 c-35 -35 -29 -54 60 -209 84 -146 110 -172 153 -158 23 7
+                        />
+                        <path
+                          d="M3753 5454 c-35 -35 -29 -54 60 -209 84 -146 110 -172 153 -158 23 7
 45 37 112 154 91 159 98 187 50 222 -46 34 -74 16 -131 -82 l-49 -83 -49 83
 c-60 105 -96 123 -146 73z"
-                      />
-                      <path
-                        d="M2077 5423 c-18 -17 -4 -32 31 -35 l37 -3 3 -127 3 -128 24 0 24 0 3
+                        />
+                        <path
+                          d="M2077 5423 c-18 -17 -4 -32 31 -35 l37 -3 3 -127 3 -128 24 0 24 0 3
 128 3 127 33 3 c24 2 32 8 32 23 0 17 -8 19 -93 19 -52 0 -97 -3 -100 -7z"
-                      />
-                      <path
-                        d="M2353 5424 c-10 -4 -13 -44 -13 -150 l0 -144 25 0 c24 0 25 3 25 55
+                        />
+                        <path
+                          d="M2353 5424 c-10 -4 -13 -44 -13 -150 l0 -144 25 0 c24 0 25 3 25 55
 0 55 0 55 30 55 100 0 155 89 96 156 -20 24 -32 28 -87 31 -35 1 -70 0 -76 -3z
 m111 -47 c42 -31 10 -100 -44 -94 -23 2 -25 7 -28 55 -3 51 -3 52 26 52 15 0
 36 -6 46 -13z"
-                      />
-                      <path
-                        d="M2618 5423 c-16 -4 -18 -19 -18 -143 l0 -139 45 -7 c63 -9 111 2 135
+                        />
+                        <path
+                          d="M2618 5423 c-16 -4 -18 -19 -18 -143 l0 -139 45 -7 c63 -9 111 2 135
 33 27 35 25 59 -9 94 -22 21 -26 31 -17 36 41 25 41 91 0 117 -22 15 -96 20
 -136 9z m106 -25 c33 -15 42 -43 22 -73 -14 -21 -24 -25 -66 -25 l-50 0 0 49
 c0 30 5 51 13 54 22 9 55 7 81 -5z m-1 -132 c34 -8 52 -47 36 -77 -14 -27 -56
 -42 -96 -34 -32 6 -33 7 -33 60 0 48 2 54 23 57 12 2 27 3 32 2 6 -1 23 -5 38
 -8z"
-                      />
-                      <path
-                        d="M3250 5280 c0 -127 2 -150 15 -150 12 0 15 13 15 58 l1 57 53 -57
+                        />
+                        <path
+                          d="M3250 5280 c0 -127 2 -150 15 -150 12 0 15 13 15 58 l1 57 53 -57
 c29 -32 61 -58 71 -58 12 0 3 16 -35 57 l-51 56 53 54 c40 41 48 53 33 53 -11
 0 -43 -23 -72 -52 l-53 -52 0 92 c0 75 -3 92 -15 92 -13 0 -15 -23 -15 -150z"
-                      />
-                      <path d="M1933 5405 c0 -8 4 -12 9 -9 5 3 6 10 3 15 -9 13 -12 11 -12 -6z" />
-                      <path
-                        d="M1898 5403 c-9 -3 -19 -12 -21 -21 -4 -15 -5 -15 -6 1 -1 17 -21 25
+                        />
+                        <path d="M1933 5405 c0 -8 4 -12 9 -9 5 3 6 10 3 15 -9 13 -12 11 -12 -6z" />
+                        <path
+                          d="M1898 5403 c-9 -3 -19 -12 -21 -21 -4 -15 -5 -15 -6 1 -1 17 -21 25
 -21 8 0 -31 53 -35 64 -4 8 19 6 20 -16 16z"
-                      />
-                      <path
-                        d="M2885 5351 c-48 -10 -35 -24 25 -25 52 -1 55 -3 58 -27 3 -24 -1 -27
+                        />
+                        <path
+                          d="M2885 5351 c-48 -10 -35 -24 25 -25 52 -1 55 -3 58 -27 3 -24 -1 -27
 -40 -33 -63 -10 -88 -30 -88 -70 0 -18 6 -39 13 -45 21 -16 72 -24 112 -17
 l35 7 0 89 c0 90 -11 120 -45 120 -7 0 -19 2 -27 4 -7 2 -26 1 -43 -3z m83
 -148 c-3 -44 -5 -48 -30 -51 -42 -5 -70 15 -66 46 3 29 37 52 76 52 21 0 23
 -4 20 -47z"
-                      />
-                      <path
-                        d="M3053 5343 c-9 -3 -13 -35 -13 -109 0 -85 3 -104 15 -104 11 0 15 20
+                        />
+                        <path
+                          d="M3053 5343 c-9 -3 -13 -35 -13 -109 0 -85 3 -104 15 -104 11 0 15 20
 17 98 l3 97 36 3 c57 5 69 -14 69 -114 0 -68 3 -84 15 -84 12 0 15 17 15 90 0
 113 -13 130 -92 129 -29 0 -59 -3 -65 -6z"
-                      />
-                      <path
-                        d="M4180 5315 c-7 -8 -10 -51 -8 -116 3 -99 4 -104 26 -107 22 -3 22 -2
+                        />
+                        <path
+                          d="M4180 5315 c-7 -8 -10 -51 -8 -116 3 -99 4 -104 26 -107 22 -3 22 -2
 22 111 0 90 -3 116 -14 120 -8 3 -20 0 -26 -8z"
-                      />
-                      <path
-                        d="M4273 5323 c-9 -3 -13 -37 -13 -119 l0 -114 85 0 c78 0 85 2 85 20 0
+                        />
+                        <path
+                          d="M4273 5323 c-9 -3 -13 -37 -13 -119 l0 -114 85 0 c78 0 85 2 85 20 0
 18 -7 20 -66 20 l-65 0 3 28 c3 25 6 27 63 32 44 4 60 9 60 20 0 11 -15 16
 -62 18 -59 3 -63 4 -63 27 0 24 3 25 60 25 46 0 62 4 67 16 3 9 0 20 -8 25
 -15 9 -125 11 -146 2z"
-                      />
-                      <path
-                        d="M4683 5316 c-59 -27 -85 -97 -60 -158 19 -44 48 -65 105 -74 l43 -7
+                        />
+                        <path
+                          d="M4683 5316 c-59 -27 -85 -97 -60 -158 19 -44 48 -65 105 -74 l43 -7
 -12 27 c-7 14 -20 26 -31 26 -56 0 -82 104 -33 136 38 25 75 21 102 -10 23
 -27 31 -70 14 -80 -5 -3 -11 1 -15 9 -3 8 -17 15 -31 15 l-25 0 29 -52 c22
 -39 37 -54 56 -56 18 -2 23 1 20 10 -3 8 1 28 10 44 41 79 -8 172 -95 180 -27
 3 -58 -2 -77 -10z"
-                      />
-                      <path
-                        d="M4900 5211 l0 -121 25 0 c25 0 25 0 25 95 l0 95 38 0 c43 0 62 -14
+                        />
+                        <path
+                          d="M4900 5211 l0 -121 25 0 c25 0 25 0 25 95 l0 95 38 0 c43 0 62 -14
 62 -46 0 -25 -15 -40 -25 -24 -3 5 -20 10 -36 10 l-30 0 43 -62 c34 -49 50
 -64 72 -66 l29 -4 -23 37 -22 36 21 20 c30 28 29 88 -3 118 -19 18 -40 24
 -100 28 l-76 6 0 -122z"
-                      />
-                      <path
-                        d="M4447 5314 c-12 -12 6 -34 29 -34 23 0 24 -2 24 -88 0 -88 9 -115 36
+                        />
+                        <path
+                          d="M4447 5314 c-12 -12 6 -34 29 -34 23 0 24 -2 24 -88 0 -88 9 -115 36
 -105 11 4 14 28 14 98 l0 94 27 3 c17 2 29 10 31 21 3 15 -6 17 -76 17 -43 0
 -81 -3 -85 -6z"
-                      />
-                      <path d="M1731 5194 c0 -11 3 -14 6 -6 3 7 2 16 -1 19 -3 4 -6 -2 -5 -13z" />
-                      <path
-                        d="M1751 5169 c-1 -9 -4 -31 -7 -48 -6 -28 -4 -31 18 -31 15 0 25 6 25
+                        />
+                        <path d="M1731 5194 c0 -11 3 -14 6 -6 3 7 2 16 -1 19 -3 4 -6 -2 -5 -13z" />
+                        <path
+                          d="M1751 5169 c-1 -9 -4 -31 -7 -48 -6 -28 -4 -31 18 -31 15 0 25 6 25
 15 0 8 -6 14 -13 13 -7 -2 -13 2 -13 7 -1 6 3 10 8 10 5 0 13 4 18 9 5 6 2 6
 -6 1 -11 -6 -13 -4 -8 9 4 9 3 15 -2 11 -5 -3 -12 1 -14 7 -4 9 -6 7 -6 -3z"
-                      />
-                      <path d="M1731 5154 c0 -11 3 -14 6 -6 3 7 2 16 -1 19 -3 4 -6 -2 -5 -13z" />
-                      <path
-                        d="M1710 4590 l0 -230 230 0 230 0 0 230 0 230 -230 0 -230 0 0 -230z
+                        />
+                        <path d="M1731 5154 c0 -11 3 -14 6 -6 3 7 2 16 -1 19 -3 4 -6 -2 -5 -13z" />
+                        <path
+                          d="M1710 4590 l0 -230 230 0 230 0 0 230 0 230 -230 0 -230 0 0 -230z
 m400 -10 l0 -160 -160 0 -160 0 0 160 0 160 160 0 160 0 0 -160z"
-                      />
-                      <path d="M1850 4580 l0 -100 100 0 100 0 0 100 0 100 -100 0 -100 0 0 -100z" />
-                      <path
-                        d="M2370 4780 c0 -38 -2 -40 -30 -40 -27 0 -30 -3 -30 -30 0 -27 3 -30
+                        />
+                        <path d="M1850 4580 l0 -100 100 0 100 0 0 100 0 100 -100 0 -100 0 0 -100z" />
+                        <path
+                          d="M2370 4780 c0 -38 -2 -40 -30 -40 -27 0 -30 -3 -30 -30 0 -27 3 -30
 30 -30 27 0 30 3 30 30 0 27 3 30 30 30 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path
-                        d="M2570 4780 c0 -38 -2 -40 -30 -40 -27 0 -30 -3 -30 -30 0 -28 -2 -30
+                        />
+                        <path
+                          d="M2570 4780 c0 -38 -2 -40 -30 -40 -27 0 -30 -3 -30 -30 0 -28 -2 -30
 -40 -30 -38 0 -40 -2 -40 -30 l0 -30 -60 0 -60 0 0 -30 c0 -28 -2 -30 -40 -30
 l-40 0 0 -40 0 -40 40 0 c38 0 40 -2 40 -30 0 -28 -2 -30 -40 -30 l-40 0 0
 -60 0 -60 -60 0 -60 0 0 -40 0 -40 160 0 160 0 0 -30 0 -30 -60 0 -60 0 0 -30
@@ -815,25 +930,25 @@ m-2160 0 c0 -27 -3 -30 -30 -30 -27 0 -30 3 -30 30 0 27 3 30 30 30 27 0 30
 90 0 90 90 0 90 0 0 -90z m-2080 -160 l0 -70 -40 0 c-38 0 -40 -2 -40 -30 l0
 -30 -60 0 -60 0 0 60 0 60 60 0 60 0 0 40 0 40 40 0 40 0 0 -70z m780 -70 l0
 -60 -30 0 -30 0 0 60 0 60 30 0 30 0 0 -60z"
-                      />
-                      <path
-                        d="M2510 4420 l0 -60 30 0 c27 0 30 3 30 30 0 27 3 30 30 30 27 0 30 3
+                        />
+                        <path
+                          d="M2510 4420 l0 -60 30 0 c27 0 30 3 30 30 0 27 3 30 30 30 27 0 30 3
 30 30 l0 30 -60 0 -60 0 0 -60z"
-                      />
-                      <path
-                        d="M2510 4260 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
+                        />
+                        <path
+                          d="M2510 4260 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path
-                        d="M2890 4360 l0 -60 30 0 c28 0 30 -2 30 -40 l0 -40 40 0 40 0 0 40 0
+                        />
+                        <path
+                          d="M2890 4360 l0 -60 30 0 c28 0 30 -2 30 -40 l0 -40 40 0 40 0 0 40 0
 40 -40 0 -40 0 0 60 0 60 -30 0 -30 0 0 -60z"
-                      />
-                      <path
-                        d="M4270 4190 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M4270 4190 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M2950 4130 l0 -30 -60 0 -60 0 0 -40 c0 -38 -2 -40 -30 -40 -27 0
+                        />
+                        <path
+                          d="M2950 4130 l0 -30 -60 0 -60 0 0 -40 c0 -38 -2 -40 -30 -40 -27 0
 -30 -3 -30 -30 0 -28 -2 -30 -40 -30 l-40 0 0 -60 0 -60 40 0 40 0 0 60 0 60
 30 0 c27 0 30 3 30 30 0 27 3 30 30 30 27 0 30 -3 30 -30 l0 -30 70 0 70 0 0
 -30 c0 -27 3 -30 30 -30 27 0 30 -3 30 -30 l0 -30 70 0 70 0 0 -40 0 -40 -100
@@ -847,14 +962,14 @@ m-2160 0 c0 -27 -3 -30 -30 -30 -27 0 -30 3 -30 30 0 27 3 30 30 30 27 0 30
 0 40 0 40 40 0 c38 0 40 2 40 30 0 28 -2 30 -40 30 -38 0 -40 -2 -40 -30z
 m340 -260 c0 -27 -3 -30 -30 -30 -27 0 -30 3 -30 30 0 27 3 30 30 30 27 0 30
 -3 30 -30z"
-                      />
-                      <path
-                        d="M4410 4130 c0 -28 -2 -30 -40 -30 l-40 0 0 -40 0 -40 40 0 40 0 0 40
+                        />
+                        <path
+                          d="M4410 4130 c0 -28 -2 -30 -40 -30 l-40 0 0 -40 0 -40 40 0 40 0 0 40
 c0 38 2 40 30 40 27 0 30 3 30 30 0 27 -3 30 -30 30 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path d="M3610 3990 l0 -30 70 0 70 0 0 30 0 30 -70 0 -70 0 0 -30z" />
-                      <path
-                        d="M4270 3930 c0 -27 -3 -30 -30 -30 -27 0 -30 -3 -30 -30 0 -27 3 -30
+                        />
+                        <path d="M3610 3990 l0 -30 70 0 70 0 0 30 0 30 -70 0 -70 0 0 -30z" />
+                        <path
+                          d="M4270 3930 c0 -27 -3 -30 -30 -30 -27 0 -30 -3 -30 -30 0 -27 3 -30
 30 -30 28 0 30 -2 30 -40 l0 -40 -100 0 -100 0 0 40 c0 38 -2 40 -30 40 -27 0
 -30 3 -30 30 l0 30 -70 0 -70 0 0 -100 0 -100 40 0 c38 0 40 -2 40 -30 0 -27
 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30 l-30 0 0 70 0 70 30 0 c28 0
@@ -863,21 +978,21 @@ c0 38 2 40 30 40 27 0 30 3 30 30 0 27 -3 30 -30 30 -27 0 -30 -3 -30 -30z"
 60 0 60 30 0 c27 0 30 3 30 30 0 27 3 30 30 30 28 0 30 2 30 40 0 38 -2 40
 -30 40 -27 0 -30 3 -30 30 0 27 3 30 30 30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M4530 3870 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M4530 3870 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M3550 3630 l0 -130 70 0 70 0 0 40 0 40 -40 0 -40 0 0 60 0 60 70 0
+                        />
+                        <path
+                          d="M3550 3630 l0 -130 70 0 70 0 0 40 0 40 -40 0 -40 0 0 60 0 60 70 0
 70 0 0 30 0 30 -100 0 -100 0 0 -130z"
-                      />
-                      <path
-                        d="M4010 3340 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
+                        />
+                        <path
+                          d="M4010 3340 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path
-                        d="M4130 3270 c0 -27 -3 -30 -30 -30 -27 0 -30 -3 -30 -30 0 -27 -3 -30
+                        />
+                        <path
+                          d="M4130 3270 c0 -27 -3 -30 -30 -30 -27 0 -30 -3 -30 -30 0 -27 -3 -30
 -30 -30 -27 0 -30 -3 -30 -30 0 -27 -3 -30 -30 -30 -28 0 -30 -2 -30 -40 l0
 -40 -40 0 -40 0 0 40 c0 38 -2 40 -30 40 -28 0 -30 -2 -30 -40 0 -38 -2 -40
 -30 -40 l-30 0 0 70 0 70 -30 0 -30 0 0 -100 0 -100 -40 0 c-38 0 -40 -2 -40
@@ -901,9 +1016,9 @@ l0 -30 -70 0 -70 0 0 60 0 60 40 0 40 0 0 40 c0 38 2 40 30 40 27 0 30 3 30
 -30 30 -27 0 -30 -3 -30 -30 0 -28 -2 -30 -40 -30 l-40 0 0 -40 c0 -38 -2 -40
 -30 -40 l-30 0 0 70 0 70 70 0 70 0 0 30 0 30 -130 0 -130 0 0 30 0 30 130 0
 130 0 0 40 0 40 -40 0 c-38 0 -40 2 -40 30 0 28 2 30 40 30 38 0 40 -2 40 -30z"
-                      />
-                      <path
-                        d="M3410 2880 l0 -100 -130 0 -130 0 0 -30 c0 -27 -3 -30 -30 -30 -27 0
+                        />
+                        <path
+                          d="M3410 2880 l0 -100 -130 0 -130 0 0 -30 c0 -27 -3 -30 -30 -30 -27 0
 -30 3 -30 30 0 27 -3 30 -30 30 l-30 0 0 -60 0 -60 -70 0 -70 0 0 60 0 60 30
 0 c27 0 30 3 30 30 0 27 -3 30 -30 30 -27 0 -30 -3 -30 -30 0 -27 -3 -30 -30
 -30 -27 0 -30 3 -30 30 0 27 -3 30 -30 30 -27 0 -30 -3 -30 -30 0 -28 -2 -30
@@ -927,165 +1042,172 @@ l0 -30 -70 0 -70 0 0 60 0 60 40 0 40 0 0 40 c0 38 2 40 30 40 27 0 30 3 30
 0 30 -3 30 -30z m140 0 c0 -28 -2 -30 -40 -30 -38 0 -40 2 -40 30 0 28 2 30
 40 30 38 0 40 -2 40 -30z m-460 -260 l0 -30 -100 0 -100 0 0 30 0 30 100 0
 100 0 0 -30z"
-                      />
-                      <path
-                        d="M4330 2490 c0 -28 2 -30 40 -30 38 0 40 2 40 30 0 28 -2 30 -40 30
+                        />
+                        <path
+                          d="M4330 2490 c0 -28 2 -30 40 -30 38 0 40 2 40 30 0 28 -2 30 -40 30
 -38 0 -40 -2 -40 -30z"
-                      />
-                      <path
-                        d="M2370 2360 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
+                        />
+                        <path
+                          d="M2370 2360 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path
-                        d="M3690 2360 l0 -40 -40 0 c-38 0 -40 -2 -40 -30 0 -28 2 -30 40 -30
+                        />
+                        <path
+                          d="M3690 2360 l0 -40 -40 0 c-38 0 -40 -2 -40 -30 0 -28 2 -30 40 -30
 38 0 40 2 40 30 0 27 3 30 30 30 28 0 30 2 30 40 0 38 -2 40 -30 40 -28 0 -30
 -2 -30 -40z"
-                      />
-                      <path
-                        d="M3810 2360 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
+                        />
+                        <path
+                          d="M3810 2360 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path d="M4410 2330 l0 -70 30 0 30 0 0 70 0 70 -30 0 -30 0 0 -70z" />
-                      <path
-                        d="M4210 2090 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path d="M4410 2330 l0 -70 30 0 30 0 0 70 0 70 -30 0 -30 0 0 -70z" />
+                        <path
+                          d="M4210 2090 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path d="M4130 1900 l0 -40 40 0 40 0 0 40 0 40 -40 0 -40 0 0 -40z" />
-                      <path
-                        d="M3290 4390 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path d="M4130 1900 l0 -40 40 0 40 0 0 40 0 40 -40 0 -40 0 0 -40z" />
+                        <path
+                          d="M3290 4390 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M2050 3830 l0 -70 30 0 c27 0 30 -3 30 -30 0 -27 3 -30 30 -30 27 0
+                        />
+                        <path
+                          d="M2050 3830 l0 -70 30 0 c27 0 30 -3 30 -30 0 -27 3 -30 30 -30 27 0
 30 3 30 30 0 27 -3 30 -30 30 -28 0 -30 2 -30 40 0 38 2 40 30 40 27 0 30 3
 30 30 l0 30 -60 0 -60 0 0 -70z"
-                      />
-                      <path
-                        d="M2110 3610 c0 -27 3 -30 30 -30 28 0 30 -2 30 -40 0 -38 2 -40 30
+                        />
+                        <path
+                          d="M2110 3610 c0 -27 3 -30 30 -30 28 0 30 -2 30 -40 0 -38 2 -40 30
 -40 28 0 30 2 30 40 0 38 -2 40 -30 40 -27 0 -30 3 -30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M2110 3210 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M2110 3210 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M3290 3210 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M3290 3210 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M4470 3210 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M4470 3210 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M3290 2030 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M3290 2030 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M4470 2030 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path
+                          d="M4470 2030 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path d="M3350 4780 l0 -40 70 0 70 0 0 40 0 40 -70 0 -70 0 0 -40z" />
-                      <path
-                        d="M4070 4750 l0 -70 30 0 c27 0 30 -3 30 -30 0 -28 2 -30 40 -30 38 0
+                        />
+                        <path d="M3350 4780 l0 -40 70 0 70 0 0 40 0 40 -70 0 -70 0 0 -40z" />
+                        <path
+                          d="M4070 4750 l0 -70 30 0 c27 0 30 -3 30 -30 0 -28 2 -30 40 -30 38 0
 40 2 40 30 0 27 3 30 30 30 l30 0 0 -60 0 -60 30 0 c27 0 30 3 30 30 0 28 2
 30 40 30 l40 0 0 100 0 100 -40 0 -40 0 0 -40 0 -40 -60 0 -60 0 0 40 0 40
 -70 0 -70 0 0 -70z m140 -40 c0 -28 -2 -30 -40 -30 -38 0 -40 2 -40 30 0 28 2
 30 40 30 38 0 40 -2 40 -30z"
-                      />
-                      <path
-                        d="M4470 4590 l0 -230 230 0 230 0 0 230 0 230 -230 0 -230 0 0 -230z
+                        />
+                        <path
+                          d="M4470 4590 l0 -230 230 0 230 0 0 230 0 230 -230 0 -230 0 0 -230z
 m380 -10 l0 -160 -160 0 -160 0 0 160 0 160 160 0 160 0 0 -160z"
-                      />
-                      <path d="M4590 4580 l0 -100 100 0 100 0 0 100 0 100 -100 0 -100 0 0 -100z" />
-                      <path
-                        d="M3350 4650 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
+                        />
+                        <path d="M4590 4580 l0 -100 100 0 100 0 0 100 0 100 -100 0 -100 0 0 -100z" />
+                        <path
+                          d="M3350 4650 c0 -27 3 -30 30 -30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path
-                        d="M1790 3730 c0 -28 -2 -30 -40 -30 -38 0 -40 -2 -40 -30 0 -28 2 -30
+                        />
+                        <path
+                          d="M1790 3730 c0 -28 -2 -30 -40 -30 -38 0 -40 -2 -40 -30 0 -28 2 -30
 40 -30 38 0 40 2 40 30 0 27 3 30 30 30 27 0 30 3 30 30 0 27 -3 30 -30 30
 -27 0 -30 -3 -30 -30z"
-                      />
-                      <path d="M1710 3340 l0 -40 40 0 40 0 0 40 0 40 -40 0 -40 0 0 -40z" />
-                      <path
-                        d="M4790 3110 l0 -70 30 0 c28 0 30 2 30 40 l0 40 40 0 c38 0 40 2 40
+                        />
+                        <path d="M1710 3340 l0 -40 40 0 40 0 0 40 0 40 -40 0 -40 0 0 -40z" />
+                        <path
+                          d="M4790 3110 l0 -70 30 0 c28 0 30 2 30 40 l0 40 40 0 c38 0 40 2 40
 30 l0 30 -70 0 -70 0 0 -70z"
-                      />
-                      <path
-                        d="M4790 2850 l0 -70 70 0 70 0 0 30 c0 28 -2 30 -40 30 l-40 0 0 40 c0
+                        />
+                        <path
+                          d="M4790 2850 l0 -70 70 0 70 0 0 30 c0 28 -2 30 -40 30 l-40 0 0 40 c0
 38 -2 40 -30 40 l-30 0 0 -70z"
-                      />
-                      <path
-                        d="M1710 1830 l0 -230 230 0 230 0 0 230 0 230 -230 0 -230 0 0 -230z
+                        />
+                        <path
+                          d="M1710 1830 l0 -230 230 0 230 0 0 230 0 230 -230 0 -230 0 0 -230z
 m400 10 l0 -160 -160 0 -160 0 0 160 0 160 160 0 160 0 0 -160z"
-                      />
-                      <path d="M1850 1840 l0 -100 100 0 100 0 0 100 0 100 -100 0 -100 0 0 -100z" />
-                      <path
-                        d="M4790 1900 c0 -38 2 -40 30 -40 27 0 30 -3 30 -30 0 -27 -3 -30 -30
+                        />
+                        <path d="M1850 1840 l0 -100 100 0 100 0 0 100 0 100 -100 0 -100 0 0 -100z" />
+                        <path
+                          d="M4790 1900 c0 -38 2 -40 30 -40 27 0 30 -3 30 -30 0 -27 -3 -30 -30
 -30 -27 0 -30 -3 -30 -30 0 -27 -3 -30 -30 -30 -27 0 -30 -3 -30 -30 l0 -30
 60 0 60 0 0 -40 0 -40 40 0 40 0 0 40 0 40 -40 0 -40 0 0 60 0 60 40 0 c38 0
 40 2 40 30 0 28 -2 30 -40 30 l-40 0 0 40 c0 38 -2 40 -30 40 -28 0 -30 -2
 -30 -40z"
-                      />
-                      <path
-                        d="M3610 1710 c0 -28 2 -30 40 -30 38 0 40 2 40 30 0 28 -2 30 -40 30
+                        />
+                        <path
+                          d="M3610 1710 c0 -28 2 -30 40 -30 38 0 40 2 40 30 0 28 -2 30 -40 30
 -38 0 -40 -2 -40 -30z"
-                      />
-                      <path
-                        d="M3030 1640 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
+                        />
+                        <path
+                          d="M3030 1640 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path
-                        d="M3750 1640 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
+                        />
+                        <path
+                          d="M3750 1640 c0 -38 2 -40 30 -40 28 0 30 2 30 40 0 38 -2 40 -30 40
 -28 0 -30 -2 -30 -40z"
-                      />
-                      <path
-                        d="M2403 1253 c-13 -2 -23 -5 -23 -6 0 -1 -9 -48 -19 -104 l-18 -103 32
+                        />
+                        <path
+                          d="M2403 1253 c-13 -2 -23 -5 -23 -6 0 -1 -9 -48 -19 -104 l-18 -103 32
 0 32 0 13 75 c14 80 26 98 62 93 20 -3 23 -9 23 -43 0 -22 -4 -59 -8 -83 l-7
 -43 32 3 33 3 14 87 c14 82 14 88 -4 108 -15 16 -29 20 -79 19 -34 -1 -71 -4
 -83 -6z"
-                      />
-                      <path
-                        d="M2633 1253 c-7 -2 -13 -14 -13 -26 0 -20 4 -22 55 -19 50 4 55 2 55
+                        />
+                        <path
+                          d="M2633 1253 c-7 -2 -13 -14 -13 -26 0 -20 4 -22 55 -19 50 4 55 2 55
 -17 0 -17 -6 -21 -34 -21 -72 0 -114 -36 -102 -86 11 -42 86 -66 153 -48 26 7
 28 11 44 109 13 76 13 78 -10 96 -17 14 -38 19 -80 18 -31 0 -62 -3 -68 -6z
 m87 -142 c0 -34 -12 -45 -40 -36 -22 7 -28 50 -7 58 33 14 47 7 47 -22z"
-                      />
-                      <path
-                        d="M2863 1250 c-13 -5 -23 -13 -23 -17 0 -4 -11 -71 -25 -147 -14 -77
+                        />
+                        <path
+                          d="M2863 1250 c-13 -5 -23 -13 -23 -17 0 -4 -11 -71 -25 -147 -14 -77
 -25 -142 -25 -144 0 -2 15 -2 32 0 31 3 34 6 41 50 9 45 10 47 37 41 77 -15
 140 43 140 130 0 69 -30 97 -102 96 -29 0 -63 -4 -75 -9z m107 -55 c33 -39
 -22 -125 -70 -110 -18 6 -20 12 -14 43 12 65 22 82 48 82 13 0 29 -7 36 -15z"
-                      />
-                      <path
-                        d="M3104 1252 c-6 -4 -14 -16 -18 -27 -5 -18 -1 -20 51 -20 47 0 58 -3
+                        />
+                        <path
+                          d="M3104 1252 c-6 -4 -14 -16 -18 -27 -5 -18 -1 -20 51 -20 47 0 58 -3
 61 -17 3 -15 -4 -18 -41 -18 -56 0 -97 -29 -97 -69 0 -46 32 -66 105 -66 35 0
 66 3 69 6 4 3 13 42 20 85 15 82 9 117 -19 128 -23 8 -117 7 -131 -2z m86
 -134 c0 -40 -15 -53 -44 -40 -30 13 -34 37 -8 51 30 18 52 13 52 -11z"
-                      />
-                      <path
-                        d="M3315 1235 c-42 -42 -29 -83 35 -109 24 -9 40 -22 37 -29 -6 -18 -44
+                        />
+                        <path
+                          d="M3315 1235 c-42 -42 -29 -83 35 -109 24 -9 40 -22 37 -29 -6 -18 -44
 -20 -77 -3 -30 14 -30 14 -30 -15 0 -22 6 -32 26 -39 41 -16 89 -12 118 11 22
 17 27 28 24 58 -3 32 -8 38 -45 56 -56 25 -57 48 -3 47 3 0 15 -3 27 -6 16 -5
 23 -2 28 15 9 29 -8 39 -68 39 -38 0 -53 -5 -72 -25z"
-                      />
-                    </g>
-                  </svg>
+                        />
+                      </g>
+                    </svg>
+                  </div>
                 </div>
-              </div>
-              <div className="flex-c-m">
-                <a href="https://www.facebook.com/ntcongg/" className="login100-social-item bg1">
-                  <i className="fa fa-facebook" />
-                </a>
-                <a href="https://www.instagram.com/_augustine.ng/" className="login100-social-item bg2">
-                  <i className="fa fa-instagram" />
-                </a>
-                <a href="#" className="login100-social-item bg3">
-                  <i className="fa fa-google" />
-                </a>
-              </div>
-            </form>
+                <div className="flex-c-m">
+                  <a
+                    href="https://www.facebook.com/ntcongg/"
+                    className="login100-social-item bg1"
+                  >
+                    <i className="fa fa-facebook" />
+                  </a>
+                  <a
+                    href="https://www.instagram.com/_augustine.ng/"
+                    className="login100-social-item bg2"
+                  >
+                    <i className="fa fa-instagram" />
+                  </a>
+                  <a href="#" className="login100-social-item bg3">
+                    <i className="fa fa-google" />
+                  </a>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>
