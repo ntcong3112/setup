@@ -84,7 +84,6 @@ const handleChange = (event) => {
       >
         {user.pages && user.pages.map(page =>
         {
-            console.log(page)
             return  (<FormControlLabel value={page.index} key={page.index} control={<BpRadio />} label={"Đếm ngày yêu với "+page.name } />)
 
         }

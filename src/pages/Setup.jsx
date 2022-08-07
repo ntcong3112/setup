@@ -21,7 +21,7 @@ const Setup = () => {
   const history = useHistory();
   const location = useLocation();
   const [user, setUser] = React.useState({});
-  const [date, setDate] = React.useState(new Date("2020-06-13T00:00:00"));
+  const [date, setDate] = React.useState(draft.timeStart);
   const [errorMessage, seterrorMessage] = React.useState("");
   const [successMessage, setsuccessMessage] = React.useState("");
   const [choosePage, setChoosePage] = React.useState(true);
@@ -258,7 +258,7 @@ const Setup = () => {
                     <DateTimePicker
                       className="input-date"
                       label="Time start loving"
-                      value={input.timeStart}
+                      value={date}
                       onChange={handleChangeDate}
                       name="timeStart"
                       renderInput={(params) => <TextField {...params} />}
