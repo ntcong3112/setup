@@ -178,7 +178,7 @@ const Setup = () => {
                   <div style={{ marginBottom: "10px", color: "green" }}>
                     {successMessage}
                     {showLink && (
-                  <Link href={"https://secretspage.com?n="+user.number+"&i="+index} style={{marginBottom:"20px"}}>Secrets page</Link>
+                  <Link href={"https://secretspage.com/user/page?n="+user.number+"&i="+index} style={{marginBottom:"20px"}}>Secrets page</Link>
                   
                 )}
                   </div>
