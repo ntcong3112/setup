@@ -2,7 +2,9 @@
 [ FONT ]*/
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,600;1,400&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600&family=Roboto+Mono:ital@1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600&family=Open+Sans:wght@300&family=Prompt:ital,wght@1,900&family=Roboto+Mono:ital@1&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600&family=Prompt:ital,wght@1,900&family=Roboto+Mono:ital@1&display=swap');
 
 @font-face {
   font-family: Poppins-Regular;
@@ -305,7 +307,7 @@ iframe {
 }
 
 .input100 {
-  font-family: Poppins-Medium;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 16px;
   color: #333333;
   line-height: 1.2;
