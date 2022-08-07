@@ -1,5 +1,8 @@
 /*//////////////////////////////////////////////////////////////////
 [ FONT ]*/
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,600;1,400&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600&family=Roboto+Mono:ital@1&display=swap');
 
 @font-face {
   font-family: Poppins-Regular;
@@ -21,6 +24,10 @@
   src: url('../fonts/poppins/Poppins-SemiBold.ttf');
 }
 
+@font-face {
+  font-family: Main-Font;
+  src: url('https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap');
+}
 
 
 
@@ -251,6 +258,10 @@ iframe {
   width: 100%;
 }
 
+.css-i44wyl{
+  width: 100% !important;
+}
+
 .login100-form-title {
   display: block;
   font-family: Poppins-Bold;
@@ -286,8 +297,8 @@ iframe {
 }
 
 .label-input100 {
-  font-family: Poppins-Regular;
-  font-size: 14px;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 18px;
   color: #333333;
   line-height: 1.5;
   padding-left: 7px;
