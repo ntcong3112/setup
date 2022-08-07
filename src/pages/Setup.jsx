@@ -94,7 +94,8 @@ const Setup = () => {
           }
         )
         .then((res) => {
-          setsuccessMessage("Tạo thành công \n Xem thử tại đây: ");
+          setsuccessMessage("Tạo thành công. Xem thử tại đây: ");
+          setUser({ ...user, pages: [...user.pages, res.data] });
           setShowLink(true);
         });
     } catch (err) {
@@ -129,7 +130,7 @@ const Setup = () => {
         .then((res) => {
           setChoosePage(true);
           seterrorMessage("");
-          setsuccessMessage("Update thành công \n Xem thử tại đây: ");
+          setsuccessMessage("Update thành công. Xem thử tại đây: ");
           setShowLink(true);
         });
     } catch (err) {
