@@ -30,6 +30,7 @@ const Setup = () => {
   const [date, setDate] = React.useState(draft.timeStart);
   const [input, setInput] = React.useState({ name: draft.name, message: draft.message, timeStart: draft.timeStart });
   const [showLink, setShowLink] = React.useState(false);
+  const [index, setIndex] = React.useState(0);
   React.useEffect(() => {
     console.log(location.state);
     if (location.state) {
@@ -71,36 +72,47 @@ const Setup = () => {
     }
   }
   const formSubmitter = (e) => {
-    e.preventDefault();
-    setsuccessMessage("");
-    if (!input.name) return seterrorMessage("Please enter name");
-    if (!input.message) return seterrorMessage("Please enter message");
-    try {
-      let header = {
-        "Access-Control-Allow-Origin": "*",
-      };
-      axios
-        .post(
-          `https://api.secretspage.com/api/user/create-page`,
-          {
-            type: "love",
-            name: input.name,
-            message: input.message,
-            timeStart: date,
-            number: user.number,
-          },
-          {
-            headers: header,
-          }
-        )
-        .then((res) => {
-          setsuccessMessage("Tạo thành công. Xem thử tại đây: ");
-          setUser({ ...user, pages: [...user.pages, res.data] });
-          setShowLink(true);
-        });
-    } catch (err) {
-      seterrorMessage(err);
+    if(value==="new"){
+      e.preventDefault();
+      setsuccessMessage("");
+      if (!input.name) return seterrorMessage("Please enter name");
+      if (!input.message) return seterrorMessage("Please enter message");
+      try {
+        let header = {
+          "Access-Control-Allow-Origin": "*",
+        };
+        axios
+          .post(
+            `https://api.secretspage.com/api/user/create-page`,
+            {
+              type: "love",
+              name: input.name,
+              message: input.message,
+              timeStart: date,
+              number: user.number,
+            },
+            {
+              headers: header,
+            }
+          )
+          .then((res) => {
+            setChoosePage(true);
+            seterrorMessage("");
+            setsuccessMessage("Tạo thành công. Xem thử tại đây: ");
+            setUser({ ...user, pages: [...user.pages, res.data] });
+            setShowLink(true);
+            if(res.data.index){
+              setIndex(res.data.index);
+            }
+          });
+      } catch (err) {
+        seterrorMessage(err);
+      }
     }
+    else{
+      formUpdate(e);
+    }
+  
   };
 
 
@@ -130,7 +142,13 @@ const Setup = () => {
         .then((res) => {
           setChoosePage(true);
           seterrorMessage("");
+          let newUser = { ...user };
+          newUser.pages = newUser.pages.filter((page) => page.index !== res.data.index);
+          setUser({ ...user, pages: [...user.pages, res.data] });
           setsuccessMessage("Update thành công. Xem thử tại đây: ");
+          if(res.data.index){
+            setIndex(res.data.index);
+          }
           setShowLink(true);
         });
     } catch (err) {
@@ -160,7 +178,7 @@ const Setup = () => {
                   <div style={{ marginBottom: "10px", color: "green" }}>
                     {successMessage}
                     {showLink && (
-                  <Link href={"https://secretspage.com?n="+user.number+"i=0"} style={{marginBottom:"20px"}}>Secrets page</Link>
+                  <Link href={"https://secretspage.com?n="+user.number+"&i="+index} style={{marginBottom:"20px"}}>Secrets page</Link>
                   
                 )}
                   </div>
@@ -206,7 +224,7 @@ const Setup = () => {
             ) : (
               <form
                 className="login100-form validate-form"
-                onSubmit={page ==="new" ? formSubmitter : formUpdate}
+                onSubmit={formSubmitter}
               >
                 <span className="login100-form-title p-b-49">Setup</span>
                 {errorMessage.length > 0 && (
