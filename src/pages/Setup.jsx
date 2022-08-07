@@ -21,13 +21,13 @@ const Setup = () => {
   const history = useHistory();
   const location = useLocation();
   const [user, setUser] = React.useState({});
-  const [date, setDate] = React.useState(draft.timeStart);
   const [errorMessage, seterrorMessage] = React.useState("");
   const [successMessage, setsuccessMessage] = React.useState("");
   const [choosePage, setChoosePage] = React.useState(true);
   const [page, setPage] = React.useState(null);
   const [value, setValue] = React.useState(null);
   const [draft, setDraft] = React.useState({name: "", message: "", timeStart: new Date("6/13/2022")});
+  const [date, setDate] = React.useState(draft.timeStart);
   const [input, setInput] = React.useState({ name: draft.name, message: draft.message, timeStart: draft.timeStart });
   const [showLink, setShowLink] = React.useState(false);
   React.useEffect(() => {
