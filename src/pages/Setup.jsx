@@ -115,7 +115,10 @@ const Setup = () => {
   
   };
 
-
+  const changeIndex = (value) => {
+    setIndex(value);
+    setValue(value);
+  }
   const formUpdate = (e) => {
     e.preventDefault();
     setsuccessMessage("");
@@ -129,6 +132,7 @@ const Setup = () => {
         .post(
           `https://api.secretspage.com/api/user/update-page`,
           {
+            index: index,
             number: user.number,
             type: "love",
             name: input.name,
@@ -143,8 +147,10 @@ const Setup = () => {
           setChoosePage(true);
           seterrorMessage("");
           let newUser = { ...user };
+          console.log(res);
           newUser.pages = newUser.pages.filter((page) => page.index !== res.data.index);
-          setUser({ ...user, pages: [...user.pages, res.data] });
+          newUser.pages.push(res.data);
+          setUser({ ...user, pages: newUser.pages });
           setsuccessMessage("Update thành công. Xem thử tại đây: ");
           if(res.data.index){
             setIndex(res.data.index);
@@ -192,7 +198,7 @@ const Setup = () => {
               <div
                 className="wrap-input100 validate-input m-b-23"
               >
-                <ChoosePage user={user} value={value} setValue={setValue}/>
+                <ChoosePage user={user} value={value} setValue={changeIndex}/>
               </div>
               <div className="container-login100-form-btn">
                 <div className="wrap-login100-form-btn">
@@ -243,7 +249,7 @@ const Setup = () => {
                 >
                   <span className="label-input100">Name</span>
                   <input
-                    className="input100"
+                    className="input100 line-height"
                     type="text"
                     name="name"
                     value={input.name}
