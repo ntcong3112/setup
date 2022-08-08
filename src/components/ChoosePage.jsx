@@ -70,7 +70,7 @@ function BpRadio(props) {
 }
 
 export default function ChoosePage(props) {
-  console.log(props);
+  console.log(props.pages);
   const { user } = props;
   const handleChange = (event) => {
     props.setValue(event.target.value);
@@ -86,6 +86,8 @@ export default function ChoosePage(props) {
       >
         {user.pages &&
           user.pages.map((page) => {
+            console.log(page)
+            console.log(page.name)
             return (
               <FormControlLabel
                 value={page.index}

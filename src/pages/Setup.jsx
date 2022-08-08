@@ -65,7 +65,9 @@ const Setup = () => {
         setInput({ name: res.data.name, message: res.data.message, timeStart: res.data.timeStart });
         setChoosePage(false);
         seterrorMessage("");
-        setsuccessMessage("Chỉnh sửa page đếm ngày yêu với "+res.data.name);
+        setShowLink(true);
+        setsuccessMessage("Page đếm ngày yêu với "+res.data.name);
+
       }).catch(err => {
         seterrorMessage("Lỗi không thể chọn page");
       })
@@ -99,7 +101,7 @@ const Setup = () => {
             setChoosePage(true);
             seterrorMessage("");
             setsuccessMessage("Tạo thành công. Xem thử tại đây: ");
-            setUser({ ...user, pages: [...user.pages, res.data] });
+            setUser({ ...user, pages: res.data.pages});
             setShowLink(true);
             if(res.data.index){
               setIndex(res.data.index);
@@ -220,12 +222,7 @@ const Setup = () => {
                 <i className="fa fa-google" />
               </a>
             </div>
-              {/* <div className="flex-col-c p-t-155">
-              <span className="txt1 p-b-17">Or Sign Up Using</span>
-              <a href="#" className="txt2">
-                Sign Up
-              </a>
-            </div> */}
+              
             </form>
             ) : (
               <form
@@ -241,19 +238,26 @@ const Setup = () => {
                 {successMessage.length > 0 && (
                   <div style={{ marginBottom: "10px", color: "green" }}>
                     {successMessage}
+                    {showLink && (
+                  <Link href={"https://secretspage.com?n="+user.number+"&i="+index} style={{marginBottom:"20px",fontSize:"18px",marginLeft:"5px", fontFamily: "'Josefin Sans', sans-serif"}}> Xem thử</Link>
+                  
+                )}
                   </div>
                 )}
+
+
                 <div
                   className="wrap-input100 validate-input m-b-23"
                   data-validate="nhập tên đi má"
                 >
-                  <span className="label-input100">Name</span>
+                  <span className="label-input100">Tên Người Nhận</span>
                   <input
+                    autoComplete="off"
                     className="input100 line-height"
                     type="text"
                     name="name"
                     value={input.name}
-                    placeholder="Vd: em iuu"
+                    placeholder="Augustine"
                     onChange={handleChange}
                   />
                   <span className="focus-input100" data-symbol="" />
@@ -262,13 +266,14 @@ const Setup = () => {
                   className="wrap-input100 validate-input"
                   data-validate="Có gì muốn nhắn gửi không"
                 >
-                  <span className="label-input100">Message</span>
+                  <span className="label-input100">Lời tâm sự thầm kín</span>
                   <textarea
                     rows="4"
+                    autoComplete="off"
                     className="input100 text-area-input"
                     value={input.message}
                     name="message"
-                    placeholder="Vd: anh yeu em"
+                    placeholder="Cũng giống như cầu vồng chỉ được nhìn thấy khi nắng lên và mưa đã tạnh, em chỉ được nhìn thấy thế nào là hạnh phúc khi có anh."
                     onChange={handleChange}
                   />
                   <span className="focus-input100" data-symbol="" />
@@ -282,7 +287,7 @@ const Setup = () => {
                   >
                     <DateTimePicker
                       className="input-date"
-                      label="Time start loving"
+                      label="Ngày bắt đầu yêu"
                       value={date}
                       onChange={handleChangeDate}
                       name="timeStart"

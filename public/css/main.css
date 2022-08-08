@@ -558,6 +558,10 @@ iframe {
     width: 100% !important;
   }
 
+  .line-height {
+    line-height: 1.3 !important;
+  }
+
   .wrap-login100 {
     padding-left: 15px;
     padding-right: 15px;
